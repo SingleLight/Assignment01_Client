@@ -82,7 +82,6 @@ public class SkiClient {
     if (wallTime == 0) {
       wallTime = 1;
     }
-    totalCountDownLatch.await();
     csvMaker(latencyQueue);
     System.out.println("success posts:" + successCounter);
     System.out.println("failed posts: " + failureCounter);
