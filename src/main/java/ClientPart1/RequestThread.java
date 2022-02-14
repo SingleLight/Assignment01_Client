@@ -11,7 +11,6 @@ public class RequestThread implements Runnable {
 
   private final AtomicInteger successCounter;
   private final AtomicInteger failureCounter;
-  private final String baseURL;
   private final int startSkierID;
   private final int endSkierID;
   private final int startTime;
@@ -20,13 +19,15 @@ public class RequestThread implements Runnable {
   private final SkiersApi skiersApi;
   private final Random random;
   private final CountDownLatch countDownLatch;
+  private final CountDownLatch totalCountDownLatch;
+  private final int numRuns;
 
   public RequestThread(AtomicInteger successCounter,
-      AtomicInteger failureCounter, String baseURL, int startSkierID, int endSkierID, int startTime,
-      int endTime, int numLifts, SkiersApi skiersApi, Random random, CountDownLatch countDownLatch) {
+      AtomicInteger failureCounter, int startSkierID, int endSkierID, int startTime,
+      int endTime, int numLifts, SkiersApi skiersApi, Random random, CountDownLatch countDownLatch,
+      CountDownLatch totalCountDownLatch, int numRuns) {
     this.successCounter = successCounter;
     this.failureCounter = failureCounter;
-    this.baseURL = baseURL;
     this.startSkierID = startSkierID;
     this.endSkierID = endSkierID;
     this.startTime = startTime;
@@ -35,11 +36,14 @@ public class RequestThread implements Runnable {
     this.skiersApi = skiersApi;
     this.random = random;
     this.countDownLatch = countDownLatch;
+    this.totalCountDownLatch = totalCountDownLatch;
+    this.numRuns = numRuns;
   }
 
   @Override
   public void run() {
-    for (int i = 0; i < endSkierID - startSkierID; i++) {
+    int runs = numRuns * (endSkierID - startSkierID);
+    for (int i = 0; i < runs; i++) {
       for (int j = 0; j < 5; j++) {
         try {
           skiersApi.writeNewLiftRide(new LiftRide().liftID(random.nextInt(numLifts))
@@ -64,5 +68,6 @@ public class RequestThread implements Runnable {
       }
     }
     countDownLatch.countDown();
+    totalCountDownLatch.countDown();
   }
 }

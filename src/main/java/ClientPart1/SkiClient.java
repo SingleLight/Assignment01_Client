@@ -33,7 +33,7 @@ public class SkiClient {
     this.numLifts = numLifts;
     this.numRuns = numRuns;
     this.apiClient = new ApiClient();
-    this.apiClient.setBasePath(serverAddress);
+    this.apiClient.setBasePath(this.serverAddress);
     this.resortsApi = new ResortsApi(apiClient);
     this.statisticsApi = new StatisticsApi(apiClient);
     this.skiersApi = new SkiersApi(apiClient);
@@ -46,32 +46,77 @@ public class SkiClient {
     this(numThreads, numSkiers, 40, 10, serverAddress);
   }
 
-  public void phaseOne() throws InterruptedException {
-    int phaseOneThreadNumber = numThreads / 4;
-    if (phaseOneThreadNumber < 0) {
-      phaseOneThreadNumber = 1;
-    }
-    int onePortionSkierID = numSkiers / phaseOneThreadNumber;
+  public void automate() throws InterruptedException {
+    int phaseOneTotalThreadCount = (int) (numThreads * 0.25);
+    int phaseOnePartialThreadCount = (int) Math.ceil(phaseOneTotalThreadCount * 0.2);
+    int phaseTwoTotalThreadCount = numThreads;
+    int phaseTwoPartialThreadCount = (int) Math.ceil(phaseTwoTotalThreadCount * 0.2);
+    int phaseThreeTotalThreadCount = (int) (numThreads * 0.1);
+    CountDownLatch totalCountDownLatch = new CountDownLatch(
+        phaseOneTotalThreadCount + phaseTwoTotalThreadCount + phaseThreeTotalThreadCount);
+    CountDownLatch phaseOneCountDownLatch = new CountDownLatch(phaseOnePartialThreadCount);
+    CountDownLatch phaseTwoCountDownLatch = new CountDownLatch(phaseTwoPartialThreadCount);
+    CountDownLatch phaseThreeCountDownLatch = new CountDownLatch(phaseThreeTotalThreadCount);
+
+    phaseOne(phaseOneTotalThreadCount, phaseOneCountDownLatch, totalCountDownLatch);
+    phaseTwo(phaseTwoTotalThreadCount, phaseTwoCountDownLatch, totalCountDownLatch);
+    phaseThree(phaseThreeTotalThreadCount, phaseThreeCountDownLatch, totalCountDownLatch);
+
+    totalCountDownLatch.await();
+    System.out.println(successCounter);
+    System.out.println(failureCounter);
+    System.out.println("end");
+  }
+
+  public void phaseOne(int phaseOneTotalThreadCount, CountDownLatch phaseOneCountDownLatch,
+      CountDownLatch totalCountDownLatch)
+      throws InterruptedException {
+    int onePortionSkierID = numSkiers / phaseOneTotalThreadCount;
     int phaseOneStartTime = 1;
     int phaseOneEndTime = 90;
-    CountDownLatch phaseOneCountDownLatch = new CountDownLatch(
-        phaseOneThreadNumber
-    );
-    for (int i = 0; i < phaseOneThreadNumber; i++) {
+    for (int i = 0; i < phaseOneTotalThreadCount; i++) {
       Thread phaseOneThread = new Thread(
-          new RequestThread(successCounter, failureCounter, serverAddress, i * onePortionSkierID,
+          new RequestThread(successCounter, failureCounter, i * onePortionSkierID,
               (i + 1) * onePortionSkierID, phaseOneStartTime, phaseOneEndTime, numLifts, skiersApi,
-              new Random(), phaseOneCountDownLatch));
+              new Random(), phaseOneCountDownLatch, totalCountDownLatch,
+              (int) Math.ceil(numRuns * 0.2)));
       phaseOneThread.start();
     }
     phaseOneCountDownLatch.await();
-    System.out.println(successCounter);
-    System.out.println(failureCounter);
   }
 
-  public static void main(String[] args) throws InterruptedException {
-    SkiClient skiClient = new SkiClient(32, 1024, 40, 10, "http://ec2-34-210-25-131.us-west-2.compute.amazonaws.com:8080/Assignment01_war%20exploded/ski");
-    skiClient.phaseOne();
+  public void phaseTwo(int phaseTwoTotalThreadCount, CountDownLatch phaseTwoCountDownLatch,
+      CountDownLatch totalCountDownLatch)
+      throws InterruptedException {
+    int phaseTwoStartTime = 91;
+    int phaseTwoEndTime = 360;
+    int onePortionSkierID = numSkiers / phaseTwoTotalThreadCount;
+    for (int i = 0; i < phaseTwoTotalThreadCount; i++) {
+      Thread phaseTwoThread = new Thread(new RequestThread(
+          successCounter, failureCounter, i * onePortionSkierID, (i + 1) * onePortionSkierID,
+          phaseTwoStartTime, phaseTwoEndTime, numLifts, skiersApi, new Random(),
+          phaseTwoCountDownLatch, totalCountDownLatch,
+          (int) Math.ceil(numRuns * 0.6)
+      ));
+      phaseTwoThread.start();
+    }
+    phaseTwoCountDownLatch.await();
+  }
+
+  public void phaseThree(int phaseThreeTotalThreadCount, CountDownLatch phaseThreeCountDownLatch, CountDownLatch totalCountDownLatch)
+      throws InterruptedException {
+    int phaseThreeStartTime = 361;
+    int phaseThreeEndTime = 420;
+    int onePortionSkierID = numSkiers / phaseThreeTotalThreadCount;
+    for (int i = 0; i < phaseThreeTotalThreadCount; i++) {
+      Thread phaseThreeThread = new Thread(new RequestThread(
+          successCounter, failureCounter, i * onePortionSkierID, (i + 1) * onePortionSkierID,
+          phaseThreeStartTime, phaseThreeEndTime, numLifts, skiersApi, new Random(),
+          phaseThreeCountDownLatch, totalCountDownLatch, (int) Math.ceil(numRuns * 0.1)
+      ));
+       phaseThreeThread.start();
+    }
+    phaseThreeCountDownLatch.await();
   }
 
 
