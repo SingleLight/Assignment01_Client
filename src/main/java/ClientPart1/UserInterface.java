@@ -22,7 +22,7 @@ public class UserInterface {
     System.out.println("Please provide the address of the server in string");
     address = scanner.next();
 
-    SkiClient skiClient = new SkiClient(maxThreadNumber, numSkiers, numLifts, numRuns, "http://ec2-34-210-25-131.us-west-2.compute.amazonaws.com:8080/Assignment01_war%20exploded/ski");
+    SkiClient skiClient = new SkiClient(maxThreadNumber, numSkiers, numLifts, numRuns, address);
     skiClient.automate();
 
   }

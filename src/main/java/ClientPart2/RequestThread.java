@@ -65,7 +65,7 @@ public class RequestThread implements Runnable {
             break;
           }
           try {
-            this.wait((long) Math.pow(2, j));
+            Thread.sleep((long) Math.pow(2, j));
           } catch (InterruptedException ex) {
             ex.printStackTrace();
           }
